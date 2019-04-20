@@ -1,0 +1,41 @@
+<workflow-app xmlns='uri:oozie:workflow:0.5' name='oozieTaskWf'>
+    <start to='spark-csv-to-avro'/>
+
+    <action name='spark-csv-to-avro'>
+        <spark xmlns="uri:oozie:spark-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <prepare>
+                <delete path="${sparkOutput}"/>
+            </prepare>
+            <master>${master}</master>
+            <mode>cluster</mode>
+            <name>wf-oozie-task</name>
+            <class>com.aliaksei.darapiyevich.task1.Task1CsvEtlSparkApp</class>
+            <jar>${appJar}</jar>
+            <spark-opts>--driver-memory ${driverMemory}</spark-opts>
+            <arg>${sparkInput}</arg>
+            <arg>${sparkOutput}</arg>
+        </spark>
+        <ok to="shell-cp"/>
+        <error to="fail"/>
+    </action>
+
+    <action name='shell-cp'>
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>${exec}</exec>
+            <argument>${sparkOutput}</argument>
+            <argument>${finalOutput}</argument>
+            <file>${scriptDir}/${exec}#${exec}</file>
+        </shell>
+        <ok to="end" />
+        <error to="fail" />
+    </action>
+
+    <kill name="fail">
+        <message>Workflow failed, error message [${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name='end'/>
+</workflow-app>
